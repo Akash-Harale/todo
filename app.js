@@ -5,7 +5,11 @@ const PORT = process.env.PORT || 3000;
 const app = express();
 
 app.get("/", (req, res) => {
-  res.status(200).send("Home Page");
+  res.send("Home Page");
+});
+
+app.get("/users", (req, res) => {
+  res.send("These are all users present in database");
 });
 const server = app.listen(PORT);
 
