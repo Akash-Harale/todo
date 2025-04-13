@@ -3,13 +3,14 @@ const { connection } = require("./db");
 const { userRouter } = require("./routes/user.routes");
 const { todoRouter } = require("./routes/todo.routes");
 const { auth } = require("./middlewares/auth.middleware");
+const cors = require("cors");
 require("dotenv").config();
 
 const app = express();
 
 // middlwares
 app.use(express.json());
-
+app.use(cors());
 // Routes
 // user routes
 app.use("/user", userRouter);
