@@ -1,17 +1,34 @@
 const express = require("express");
+const { connection } = require("./db");
+const { userRouter } = require("./routes/user.routes");
+const { todoRouter } = require("./routes/todo.routes");
+const { auth } = require("./middlewares/auth.middleware");
 require("dotenv").config();
 
-const PORT = process.env.PORT || 3000;
 const app = express();
 
-app.get("/", (req, res) => {
-  res.send("Home Page");
-});
+// middlwares
+app.use(express.json());
 
-app.get("/users", (req, res) => {
-  res.send("These are all users present in database");
+// Routes
+// user routes
+app.use("/user", userRouter);
+
+// auth middleware
+app.use(auth);
+
+// todo routes
+app.use("/todo", todoRouter);
+
+const PORT = process.env.PORT || 3000;
+const server = app.listen(PORT, async () => {
+  try {
+    await connection;
+    console.log("successfully connected to database");
+  } catch (error) {
+    console.log(error.message);
+  }
 });
-const server = app.listen(PORT);
 
 server.on("error", (err) => {
   console.log(`failed to start the server ${err.message}`);
