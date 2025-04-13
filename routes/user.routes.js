@@ -22,23 +22,64 @@ userRouter.post("/register", (req, res) => {
 });
 
 userRouter.post("/login", async (req, res) => {
-  const { email, password } = req.body;
+  const { email, password, rememberMe } = req.body;
 
   try {
+    // Find user by email
     const user = await UserModel.findOne({ email });
-    if (user) {
-      bcrypt.compare(password, user.password, (err, result) => {
-        if (err) return res.status(400).send({ message: err.message });
-        if (result) {
-          res.send({
-            message: "Login Successful",
-            token: jwt.sign({ userId: user._id }, "secret-key"),
-          });
-        }
+    
+    // If user doesn't exist, return error
+    if (!user) {
+      return res.status(401).json({ 
+        message: "Invalid email or password" 
       });
     }
+
+    // Compare password with hashed password in database
+    const isMatch = await bcrypt.compare(password, user.password);
+    
+    // If password doesn't match, return error
+    if (!isMatch) {
+      return res.status(401).json({ 
+        message: "Invalid email or password" 
+      });
+    }
+
+    // Create token payload
+    const payload = { 
+      userId: user._id,
+      email: user.email
+    };
+
+    // Set token expiration based on rememberMe
+    const expiresIn = rememberMe ? '7d' : '24h';
+
+    // Generate JWT token
+    const token = jwt.sign(
+      payload, 
+      process.env.JWT_SECRET || "secret-key", 
+      { expiresIn }
+    );
+
+    // Return success response with token and user info (excluding password)
+    const userWithoutPassword = {
+      _id: user._id,
+      email: user.email,
+      fullName: user.fullName,
+      // Add any other user properties you want to send to frontend
+    };
+
+    res.status(200).json({
+      message: "Login successful",
+      token,
+      user: userWithoutPassword
+    });
+
   } catch (error) {
-    res.send({ message: `Inside the catch block ${error.message}` });
+    console.error("Login error:", error);
+    res.status(500).json({ 
+      message: "An error occurred during login process" 
+    });
   }
 });
 
