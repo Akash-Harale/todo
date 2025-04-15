@@ -27,58 +27,60 @@ userRouter.post("/login", async (req, res) => {
   try {
     // Find user by email
     const user = await UserModel.findOne({ email });
-    
+
     // If user doesn't exist, return error
     if (!user) {
-      return res.status(401).json({ 
-        message: "Invalid email or password" 
+      return res.status(401).json({
+        message: "Invalid email or password",
       });
     }
 
     // Compare password with hashed password in database
-    const isMatch = await bcrypt.compare(password, user.password);
-    
-    // If password doesn't match, return error
-    if (!isMatch) {
-      return res.status(401).json({ 
-        message: "Invalid email or password" 
-      });
-    }
+    bcrypt.compare(password, user.password, (err, result) => {
+      if (err) {
+        // If password doesn't match, return error
+        return res.status(401).json({
+          message: "Invalid email or password",
+        });
+      }
+      if (result) {
+        // Create token payload
+        const payload = {
+          userId: user._id,
+        };
 
-    // Create token payload
-    const payload = { 
-      userId: user._id,
-      email: user.email
-    };
+        // Set token expiration based on rememberMe
+        const expiresIn = rememberMe ? "7d" : "24h";
 
-    // Set token expiration based on rememberMe
-    const expiresIn = rememberMe ? '7d' : '24h';
+        // Generate JWT token
+        const token = jwt.sign(
+          payload,
+          process.env.JWT_SECRET || "secret-key",
+          {
+            expiresIn,
+          }
+        );
 
-    // Generate JWT token
-    const token = jwt.sign(
-      payload, 
-      process.env.JWT_SECRET || "secret-key", 
-      { expiresIn }
-    );
+        // Return success response with token and user info (excluding password)
+        const userWithoutPassword = {
+          _id: user._id,
+          email: user.email,
+          fullName: user.fullName,
+          // Add any other user properties you want to send to frontend
+        };
 
-    // Return success response with token and user info (excluding password)
-    const userWithoutPassword = {
-      _id: user._id,
-      email: user.email,
-      fullName: user.fullName,
-      // Add any other user properties you want to send to frontend
-    };
-
-    res.status(200).json({
-      message: "Login successful",
-      token,
-      user: userWithoutPassword
+        res.status(200).json({
+          message: "Login successful",
+          token,
+          user: userWithoutPassword,
+        });
+      }
     });
-
   } catch (error) {
     console.error("Login error:", error);
-    res.status(500).json({ 
-      message: "An error occurred during login process" 
+    res.status(500).json({
+      message: "An error occurred during login process",
+      error: error.message,
     });
   }
 });
